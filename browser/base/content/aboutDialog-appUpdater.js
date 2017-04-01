@@ -196,13 +196,9 @@ appUpdater.prototype =
   doUpdate: function() {
     // skip the compatibility check if the update doesn't provide appVersion,
     // or the appVersion is unchanged, e.g. nightly update
-#ifdef TOR_BROWSER_UPDATE
-    let pkgVersion = TOR_BROWSER_VERSION;
-#else
-    let pkgVersion = Services.appinfo.version;
-#endif
     if (!this.update.appVersion ||
-        Services.vc.compare(gAppUpdater.update.appVersion, pkgVersion) == 0) {
+        Services.vc.compare(gAppUpdater.update.appVersion,
+                            Services.appinfo.version) == 0) {
       this.startDownload();
     } else {
       this.checkAddonCompatibility();
@@ -357,16 +353,11 @@ appUpdater.prototype =
         // (see bug 566787). The hotfix add-on is also ignored as it shouldn't
         // block the user from upgrading.
         try {
-#ifdef TOR_BROWSER_UPDATE
-          let compatVersion = self.update.platformVersion;
-#else
-          let compatVersion = self.update.appVersion;
-#endif
           if (aAddon.type != "plugin" && aAddon.id != hotfixID &&
               !aAddon.appDisabled && !aAddon.userDisabled &&
               aAddon.scope != AddonManager.SCOPE_APPLICATION &&
               aAddon.isCompatible &&
-              !aAddon.isCompatibleWith(compatVersion,
+              !aAddon.isCompatibleWith(self.update.appVersion,
                                        self.update.platformVersion))
             self.addons.push(aAddon);
         }
@@ -390,13 +381,8 @@ appUpdater.prototype =
    */
   checkAddonsForUpdates: function() {
     this.addons.forEach(function(aAddon) {
-#ifdef TOR_BROWSER_UPDATE
-      let compatVersion = this.update.platformVersion;
-#else
-      let compatVersion = this.update.appVersion;
-#endif
       aAddon.findUpdates(this, AddonManager.UPDATE_WHEN_NEW_APP_DETECTED,
-                         compatVersion,
+                         this.update.appVersion,
                          this.update.platformVersion);
     }, this);
   },
@@ -417,13 +403,8 @@ appUpdater.prototype =
    * See XPIProvider.jsm
    */
   onUpdateAvailable: function(aAddon, aInstall) {
-#ifdef TOR_BROWSER_UPDATE
-    let compatVersion = this.update.platformVersion;
-#else
-    let compatVersion = this.update.appVersion;
-#endif
     if (!Services.blocklist.isAddonBlocklisted(aAddon,
-                                               compatVersion,
+                                               this.update.appVersion,
                                                this.update.platformVersion)) {
       // Compatibility or new version updates mean the same thing here.
       this.onCompatibilityUpdateAvailable(aAddon);

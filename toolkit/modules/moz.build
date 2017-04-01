@@ -72,6 +72,7 @@ EXTRA_JS_MODULES += [
     'Task.jsm',
     'Timer.jsm',
     'Troubleshoot.jsm',
+    'UpdateUtils.jsm',
     'WebChannel.jsm',
     'WindowDraggingUtils.jsm',
     'ZipUtils.jsm',
@@ -86,7 +87,6 @@ if not CONFIG['TOR_BROWSER_VERSION']:
 EXTRA_PP_JS_MODULES += [
     'AppConstants.jsm',
     'SessionRecorder.jsm',
-    'UpdateUtils.jsm',
 ]
 
 if 'Android' != CONFIG['OS_TARGET']:

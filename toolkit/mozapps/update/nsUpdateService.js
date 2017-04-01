@@ -12,9 +12,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/FileUtils.jsm", this);
 Cu.import("resource://gre/modules/AddonManager.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
-#ifdef XP_WIN
 Cu.import("resource://gre/modules/ctypes.jsm", this);
-#endif
 Cu.import("resource://gre/modules/UpdateTelemetry.jsm", this);
 Cu.import("resource://gre/modules/AppConstants.jsm", this);
 
@@ -68,10 +66,6 @@ const KEY_UPDROOT         = "UpdRootD";
 const KEY_EXECUTABLE      = "XREExeF";
 // Gonk only
 const KEY_UPDATE_ARCHIVE_DIR = "UpdArchD";
-
-#ifdef TOR_BROWSER_VERSION
-#expand const TOR_BROWSER_VERSION = __TOR_BROWSER_VERSION__;
-#endif
 
 const DIR_UPDATED         = "updated";
 const DIR_UPDATED_APP     = "Updated.app";
@@ -1503,17 +1497,7 @@ function Update(update) {
     this._patches.push(patch);
   }
 
-  if (update.hasAttribute("unsupported")) {
-    this.unsupported = ("true" == update.getAttribute("unsupported"));
-  } else if (update.hasAttribute("minSupportedOSVersion")) {
-    let minOSVersion = update.getAttribute("minSupportedOSVersion");
-    try {
-      let osVersion = Services.sysinfo.getProperty("version");
-      this.unsupported = (Services.vc.compare(osVersion, minOSVersion) < 0);
-    } catch (e) {}
-  }
-
-  if (this._patches.length == 0 && !this.unsupported) {
+  if (this._patches.length == 0 && !update.hasAttribute("unsupported")) {
     throw Cr.NS_ERROR_ILLEGAL_VALUE;
   }
 
@@ -1566,13 +1550,15 @@ function Update(update) {
       if(!isNaN(attr.value)) {
         this.promptWaitTime = parseInt(attr.value);
       }
+    } else if (attr.name == "unsupported") {
+      this.unsupported = attr.value == "true";
     } else if (attr.name == "version") {
       // Prevent version from replacing displayVersion if displayVersion is
       // present in the update xml.
       if (!this.displayVersion) {
         this.displayVersion = attr.value;
       }
-    } else if (attr.name != "unsupported") {
+    } else {
       this[attr.name] = attr.value;
 
       switch (attr.name) {
@@ -1917,10 +1903,6 @@ UpdateService.prototype = {
    * notify the user of install success.
    */
   _postUpdateProcessing: function AUS__postUpdateProcessing() {
-#if defined(TOR_BROWSER_UPDATE) && !defined(XP_MACOSX)
-    this._removeOrphanedTorBrowserFiles();
-#endif
-
     if (!this.canCheckForUpdates) {
       LOG("UpdateService:_postUpdateProcessing - unable to check for " +
           "updates... returning early");
@@ -2092,42 +2074,6 @@ UpdateService.prototype = {
     // a staged update.
     cleanUpMozUpdaterDirs();
   },
-
-#if defined(TOR_BROWSER_UPDATE) && !defined(XP_MACOSX)
-  /**
-   * When updating from an earlier version to Tor Browser 6.0 or later, old
-   * update info files are left behind on Linux and Windows. Remove them.
-   */
-  _removeOrphanedTorBrowserFiles: function AUS__removeOrphanedTorBrowserFiles() {
-    try {
-      let oldUpdateInfoDir = getAppBaseDir();  // aka the Browser directory.
-
-#ifdef XP_WIN
-      // On Windows, the updater files were stored under
-      // Browser/TorBrowser/Data/Browser/Caches/firefox/
-      oldUpdateInfoDir.appendRelativePath(
-                                "TorBrowser\\Data\\Browser\\Caches\\firefox");
-#endif
-
-      // Remove the updates directory.
-      let updatesDir = oldUpdateInfoDir.clone();
-      updatesDir.append("updates");
-      if (updatesDir.exists() && updatesDir.isDirectory()) {
-        updatesDir.remove(true);
-      }
-
-      // Remove files: active-update.xml and updates.xml
-      let filesToRemove = [ "active-update.xml", "updates.xml" ];
-      filesToRemove.forEach(function(aFileName) {
-        let f = oldUpdateInfoDir.clone();
-        f.append(aFileName);
-        if (f.exists()) {
-          f.remove(false);
-        }
-      });
-    } catch (e) {}
-  },
-#endif
 
   /**
    * Register an observer when the network comes online, so we can short-circuit
@@ -2443,14 +2389,9 @@ UpdateService.prototype = {
     updates.forEach(function(aUpdate) {
       // Ignore updates for older versions of the application and updates for
       // the same version of the application with the same build ID.
-#ifdef TOR_BROWSER_UPDATE
-      var compatVersion = TOR_BROWSER_VERSION;
-#else
-      var compatVersion = Services.appinfo.version;
-#endif
-      var rc = vc.compare(aUpdate.appVersion, compatVersion);
-      if (rc < 0 || ((rc == 0) &&
-                     (aUpdate.buildID == Services.appinfo.appBuildID))) {
+      if (vc.compare(aUpdate.appVersion, Services.appinfo.version) < 0 ||
+          vc.compare(aUpdate.appVersion, Services.appinfo.version) == 0 &&
+          aUpdate.buildID == Services.appinfo.appBuildID) {
         LOG("UpdateService:selectUpdate - skipping update because the " +
             "update's application version is less than the current " +
             "application version");
@@ -2614,13 +2555,8 @@ UpdateService.prototype = {
     }
 
     // Only check add-on compatibility when the version changes.
-#ifdef TOR_BROWSER_UPDATE
-    var compatVersion = TOR_BROWSER_VERSION;
-#else
-    var compatVersion = Services.appinfo.version;
-#endif
     if (update.appVersion &&
-        Services.vc.compare(update.appVersion, compatVersion) != 0) {
+        Services.vc.compare(update.appVersion, Services.appinfo.version) != 0) {
       this._update = update;
       this._checkAddonCompatibility();
     }
@@ -2651,11 +2587,6 @@ UpdateService.prototype = {
     // Get all the installed add-ons
     var self = this;
     AddonManager.getAllAddons(function(addons) {
-#ifdef TOR_BROWSER_UPDATE
-      let compatVersion = self._update.platformVersion;
-#else
-      let compatVersion = self._update.appVersion;
-#endif
       self._incompatibleAddons = [];
       addons.forEach(function(addon) {
         // Protect against code that overrides the add-ons manager and doesn't
@@ -2685,7 +2616,7 @@ UpdateService.prototype = {
               !addon.appDisabled && !addon.userDisabled &&
               addon.scope != AddonManager.SCOPE_APPLICATION &&
               addon.isCompatible &&
-              !addon.isCompatibleWith(compatVersion,
+              !addon.isCompatibleWith(self._update.appVersion,
                                       self._update.platformVersion)) {
             self._incompatibleAddons.push(addon);
           }
@@ -2721,7 +2652,7 @@ UpdateService.prototype = {
 
         self._incompatibleAddons.forEach(function(addon) {
           addon.findUpdates(this, AddonManager.UPDATE_WHEN_NEW_APP_DETECTED,
-                            compatVersion, this._update.platformVersion);
+                            this._update.appVersion, this._update.platformVersion);
         }, self);
       }
       else {
@@ -2757,12 +2688,7 @@ UpdateService.prototype = {
     // If the new version of this add-on is blocklisted for the new application
     // then it isn't a valid update and the user should still be warned that
     // the add-on will become incompatible.
-#ifdef TOR_BROWSER_UPDATE
-    let compatVersion = this._update.platformVersion;
-#else
-    let compatVersion = this._update.appVersion;
-#endif
-    if (Services.blocklist.isAddonBlocklisted(addon, compatVersion,
+    if (Services.blocklist.isAddonBlocklisted(addon, this._update.appVersion,
                                               this._update.platformVersion)) {
       return;
     }
@@ -2874,24 +2800,14 @@ UpdateService.prototype = {
     // current application's version or the update's version is the same as the
     // application's version and the build ID is the same as the application's
     // build ID.
-#ifdef TOR_BROWSER_UPDATE
-    var compatVersion = TOR_BROWSER_VERSION;
-#else
-    var compatVersion = Services.appinfo.version;
-#endif
     if (update.appVersion &&
-        (Services.vc.compare(update.appVersion, compatVersion) < 0 ||
+        (Services.vc.compare(update.appVersion, Services.appinfo.version) < 0 ||
          update.buildID && update.buildID == Services.appinfo.appBuildID &&
-         update.appVersion == compatVersion)) {
+         update.appVersion == Services.appinfo.version)) {
       LOG("UpdateService:downloadUpdate - canceling download of update since " +
           "it is for an earlier or same application version and build ID.\n" +
-#ifdef TOR_BROWSER_UPDATE
-          "current Tor Browser version: " + compatVersion + "\n" +
-          "update Tor Browser version : " + update.appVersion + "\n" +
-#else
-          "current application version: " + compatVersion + "\n" +
+          "current application version: " + Services.appinfo.version + "\n" +
           "update application version : " + update.appVersion + "\n" +
-#endif
           "current build ID: " + Services.appinfo.appBuildID + "\n" +
           "update build ID : " + update.buildID);
       cleanupActiveUpdate();
@@ -2924,7 +2840,7 @@ UpdateService.prototype = {
       }
     }
     // Set the previous application version prior to downloading the update.
-    update.previousAppVersion = compatVersion;
+    update.previousAppVersion = Services.appinfo.version;
     this._downloader = new Downloader(background, this);
     return this._downloader.downloadUpdate(update);
   },
