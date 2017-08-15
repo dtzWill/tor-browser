@@ -54,19 +54,19 @@ public:
 
   void DoShutdown();
 
-  nsresult GetUserAppDataDirectory(nsIFile* *aFile) {
+  static nsresult GetUserAppDataDirectory(nsIFile* *aFile) {
     return GetUserDataDirectory(aFile, false, nullptr, nullptr, nullptr);
   }
-  nsresult GetUserLocalDataDirectory(nsIFile* *aFile) {
+  static nsresult GetUserLocalDataDirectory(nsIFile* *aFile) {
     return GetUserDataDirectory(aFile, true, nullptr, nullptr, nullptr);
   }
 
   // By default GetUserDataDirectory gets profile path from gAppData,
   // but that can be overridden by using aProfileName/aAppName/aVendorName.
-  nsresult GetUserDataDirectory(nsIFile** aFile, bool aLocal,
-                                const nsACString* aProfileName,
-                                const nsACString* aAppName,
-                                const nsACString* aVendorName);
+  static nsresult GetUserDataDirectory(nsIFile** aFile, bool aLocal,
+                                       const nsACString* aProfileName,
+                                       const nsACString* aAppName,
+                                       const nsACString* aVendorName);
 
   /* make sure you clone it, if you need to do stuff to it */
   nsIFile* GetGREDir() { return mGREDir; }
@@ -100,8 +100,8 @@ public:
 
 protected:
   nsresult GetFilesInternal(const char* aProperty, nsISimpleEnumerator** aResult);
-  nsresult GetUserDataDirectoryHome(nsIFile* *aFile, bool aLocal);
-  nsresult GetSysUserExtensionsDirectory(nsIFile* *aFile);
+  static nsresult GetUserDataDirectoryHome(nsIFile* *aFile, bool aLocal);
+  static nsresult GetSysUserExtensionsDirectory(nsIFile* *aFile);
 #if defined(XP_UNIX) || defined(XP_MACOSX)
   static nsresult GetSystemExtensionsDirectory(nsIFile** aFile);
 #endif
