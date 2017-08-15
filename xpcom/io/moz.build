@@ -80,7 +80,6 @@ EXPORTS += [
     'nsWildCard.h',
     'SlicedInputStream.h',
     'SpecialSystemDirectory.h',
-    'TorFileUtils.h',
 ]
 
 EXPORTS.mozilla += [
@@ -119,7 +118,6 @@ UNIFIED_SOURCES += [
     'SnappyFrameUtils.cpp',
     'SnappyUncompressInputStream.cpp',
     'SpecialSystemDirectory.cpp',
-    'TorFileUtils.cpp',
 ]
 
 SOURCES += [
