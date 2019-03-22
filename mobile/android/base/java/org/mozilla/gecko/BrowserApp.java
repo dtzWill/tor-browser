@@ -1363,10 +1363,10 @@ public class BrowserApp extends GeckoApp
         if (!IntentUtils.getIsInAutomationFromEnvironment(intent)) {
             if (mTorNeedsStart) {
                 showTorBootstrapPager();
+            } else {
+                // We can't show the first run experience until Gecko has finished initialization (bug 1077583).
+                checkFirstrun(this, intent);
             }
-
-            // We can't show the first run experience until Gecko has finished initialization (bug 1077583).
-            checkFirstrun(this, intent);
         }
     }
 
@@ -3138,6 +3138,11 @@ public class BrowserApp extends GeckoApp
 
                     // If we finished, then Tor bootstrapped 100%
                     mTorNeedsStart = false;
+
+                    // When bootstrapping completes, check if the Firstrun (onboarding) screens
+                    // should be shown.
+                    final SafeIntent intent = new SafeIntent(getIntent());
+                    checkFirstrun(BrowserApp.this, intent);
                 }
             });
         }
