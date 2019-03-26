@@ -119,7 +119,7 @@ var onboardingTourset = {
         "onboarding.tour-tor-welcome.title", "onboarding.tour-tor-welcome.description");
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-welcome.png");
       createOnboardingTourButton(div,
-        "onboarding-tour-tor-welcome-button", "onboarding.tour-tor-welcome.button");
+        "onboarding-tour-tor-welcome-button", "onboarding.tour-tor-welcome.next-button");
 
       return div;
     },
@@ -165,8 +165,11 @@ var onboardingTourset = {
       createOnboardingTourDescription(div,
         "onboarding.tour-tor-circuit-display.title", "onboarding.tour-tor-circuit-display.description");
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-circuit-display.png");
-      createOnboardingTourButton(div,
+      let btnContainer = createOnboardingTourButton(div,
         "onboarding-tour-tor-circuit-display-button", "onboarding.tour-tor-circuit-display.button");
+      btnContainer.className = "onboarding-tour-tor-action-button-container";
+      createOnboardingTourButton(div,
+        "onboarding-tour-tor-circuit-display-next-button", "onboarding.tour-tor-circuit-display.next-button");
 
       return div;
     },
@@ -180,8 +183,11 @@ var onboardingTourset = {
       createOnboardingTourDescription(div,
         "onboarding.tour-tor-security.title", "onboarding.tour-tor-security.description");
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-security.png");
-      createOnboardingTourButton(div,
+      let btnContainer = createOnboardingTourButton(div,
         "onboarding-tour-tor-security-button", "onboarding.tour-tor-security-level.button");
+      btnContainer.className = "onboarding-tour-tor-action-button-container";
+      createOnboardingTourButton(div,
+        "onboarding-tour-tor-security-next-button", "onboarding.tour-tor-security-level.next-button");
 
       return div;
     },
@@ -195,9 +201,11 @@ var onboardingTourset = {
       createOnboardingTourDescription(div,
         "onboarding.tour-tor-expect-differences.title", "onboarding.tour-tor-expect-differences.description");
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-expect-differences.png");
+      let btnContainer = createOnboardingTourButton(div,
+        "onboarding-tour-tor-expect-differences-button", "onboarding.tour-tor-expect-differences.button");
+      btnContainer.className = "onboarding-tour-tor-action-button-container";
       createOnboardingTourButton(div,
-                        "onboarding-tour-tor-expect-differences-button",
-                        "onboarding.tour-tor-expect-differences.button");
+        "onboarding-tour-tor-expect-differences-next-button", "onboarding.tour-tor-expect-differences.next-button");
 
       return div;
     },
@@ -211,9 +219,11 @@ var onboardingTourset = {
       createOnboardingTourDescription(div,
         "onboarding.tour-tor-onion-services.title", "onboarding.tour-tor-onion-services.description");
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-onion-services.png");
+      let btnContainer = createOnboardingTourButton(div,
+        "onboarding-tour-tor-onion-services-button", "onboarding.tour-tor-onion-services.button");
+      btnContainer.className = "onboarding-tour-tor-action-button-container";
       createOnboardingTourButton(div,
-                        "onboarding-tour-tor-onion-services-button",
-                        "onboarding.tour-tor-onion-services.button");
+        "onboarding-tour-tor-onion-services-next-button", "onboarding.tour-tor-onion-services.next-button");
 
       return div;
     },
@@ -901,15 +911,13 @@ class Onboarding {
         this._removeTourFromNotificationQueue(tourId);
         break;
       case "onboarding-tour-tor-welcome-button":
-        this.gotoPage("onboarding-tour-tor-privacy");
-        handledTourActionClick = true;
-        break;
       case "onboarding-tour-tor-privacy-button":
-        this.gotoPage("onboarding-tour-tor-network");
-        handledTourActionClick = true;
-        break;
       case "onboarding-tour-tor-network-button":
-        this.gotoPage("onboarding-tour-tor-circuit-display");
+      case "onboarding-tour-tor-circuit-display-next-button":
+      case "onboarding-tour-tor-security-next-button":
+      case "onboarding-tour-tor-expect-differences-next-button":
+      case "onboarding-tour-tor-onion-services-next-button":
+        this.gotoNextTourItem();
         handledTourActionClick = true;
         break;
       case "onboarding-tour-tor-circuit-display-button":
@@ -948,6 +956,21 @@ class Onboarding {
         target_tour_id: activeTourId,
         width: this._windowWidthRounded,
       });
+    }
+  }
+
+  gotoNextTourItem() {
+    let activeTourID = this._activeTourId;
+    if (activeTourID) {
+      let idx = this._tourItems.findIndex(item => (item.id === activeTourID));
+      if (idx >= 0) {
+        // If at the end of the list, close onboarding; otherwise, go to next.
+        if (++idx >= this._tourItems.length) {
+          this.hideOverlay();
+        } else {
+          this.gotoPage(this._tourItems[idx].id);
+        }
+      }
     }
   }
 

@@ -401,6 +401,31 @@
   opacity: 0.5;
 }
 
+/* Tor action buttons appear in the description column rather than the content one. */
+.onboarding-tour-tor-action-button-container {
+  /* Get higher z-index in order to ensure buttons within container are selectable */
+  z-index: 2;
+  grid-row: tour-button-start / tour-page-end;
+  grid-column: tour-page-start / tour-content-start;
+}
+
+.onboarding-tour-tor-action-button-container > .onboarding-tour-action-button {
+  margin-inline-start: 40px;	/* match .onboarding-tour-description */
+  float: inline-start;
+  background: #e6e6e6;
+  color: #303030;
+}
+
+.onboarding-tour-tor-action-button-container > .onboarding-tour-action-button:hover:not([disabled])  {
+  background: #d6d6d6;
+  cursor: pointer;
+}
+
+.onboarding-tour-tor-action-button-container > .onboarding-tour-action-button:active:not([disabled]) {
+  background: #c6c6c6;
+}
+
+
 /* Tour Icons */
 #onboarding-tour-singlesearch.onboarding-tour-item::after,
 #onboarding-notification-bar[data-target-tour-id=onboarding-tour-singlesearch] #onboarding-notification-tour-title::before {
