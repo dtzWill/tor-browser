@@ -56,3 +56,6 @@ pref("general.useragent.updates.url", "");
 
 // Enable touch events on Android (highlighting text, etc)
 pref("dom.w3c_touch_events.enabled", 2);
+
+// No HLS support for now due to browser freezing, see: #29859.
+pref("media.hls.enabled", false);
