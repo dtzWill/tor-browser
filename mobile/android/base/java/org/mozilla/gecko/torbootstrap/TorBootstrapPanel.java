@@ -106,11 +106,16 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
             }
         });
 
-        // This should be declared in the xml layout, however there is a bug
-        // preventing this (the XML attribute isn't actually defined in the
-        // SDK).
-        // https://issuetracker.google.com/issues/37036728
-        connectButton.setClipToOutline(true);
+        if (Build.VERSION.SDK_INT > 20) {
+            // Round the button's edges, but only on API 21+. Earlier versions
+            // do not support this.
+            //
+            // This should be declared in the xml layout, however there is a bug
+            // preventing this (the XML attribute isn't actually defined in the
+            // SDK).
+            // https://issuetracker.google.com/issues/37036728
+            connectButton.setClipToOutline(true);
+        }
 
         configureGearCogClickHandler();
 
