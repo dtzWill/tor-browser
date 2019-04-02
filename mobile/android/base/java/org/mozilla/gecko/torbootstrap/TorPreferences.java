@@ -15,6 +15,7 @@ import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
+import android.support.v7.app.ActionBar;
 import android.text.style.ClickableSpan;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -138,7 +139,9 @@ public class TorPreferences extends AppCompatPreferenceActivity {
     // Save the current preference when the app is minimized or swiped away.
     @Override
     public void onStop() {
-        mFrag.onSaveState();
+        if (mFrag != null) {
+            mFrag.onSaveState();
+        }
         super.onStop();
     }
 
@@ -163,7 +166,9 @@ public class TorPreferences extends AppCompatPreferenceActivity {
     // the back button
     @Override
     public void onBackPressed() {
-        mFrag.onSaveState();
+        if (mFrag != null) {
+            mFrag.onSaveState();
+        }
         super.onBackPressed();
     }
 
@@ -200,7 +205,7 @@ public class TorPreferences extends AppCompatPreferenceActivity {
     // https://android.googlesource.com/platform/frameworks/base/+/6af15ebcfec64d0cc6879a0af9cfffd3e084ee73
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
+        if (item != null && item.getItemId() == android.R.id.home) {
             Log.i(LOGTAG, "onOptionsItemSelected(): Home");
             onNavigateUp();
             return true;
@@ -214,8 +219,8 @@ public class TorPreferences extends AppCompatPreferenceActivity {
         protected TorPreferences mTorPrefAct;
 
         @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
+        public void onActivityCreated(Bundle savedInstanceState) {
+            super.onActivityCreated(savedInstanceState);
 
             // This is only ever a TorPreferences
             mTorPrefAct = (TorPreferences) getActivity();
@@ -317,6 +322,11 @@ public class TorPreferences extends AppCompatPreferenceActivity {
 
         // Disable the bridges.enabled Preference
         protected void disableBridges(PreferenceFragment frag) {
+            if (frag == null) {
+                Log.w(LOGTAG, "disableBridges: frag is null");
+                return;
+            }
+
             SwitchPreference bridgesEnabled = (SwitchPreference) frag.findPreference(PREFS_BRIDGES_ENABLED);
             Preference bridgesType = frag.findPreference(PREFS_BRIDGES_TYPE);
             Preference bridgesProvide = frag.findPreference(PREFS_BRIDGES_PROVIDE);
@@ -349,7 +359,14 @@ public class TorPreferences extends AppCompatPreferenceActivity {
 
         // Set the current title
         protected void setTitle(int resId) {
-            mTorPrefAct.getSupportActionBar().setTitle(resId);
+            ActionBar actionBar = mTorPrefAct.getSupportActionBar();
+
+            if (actionBar == null) {
+                Log.w(LOGTAG, "setTitle: actionBar is null");
+                return;
+            }
+
+            actionBar.setTitle(resId);
         }
     }
 
@@ -446,6 +463,8 @@ public class TorPreferences extends AppCompatPreferenceActivity {
                 public void onChildViewAdded(View parent, View child) {
                     Log.i(LOGTAG, "onChildViewAdded: Adding ListView child view");
 
+                    setTitle(R.string.pref_tor_network_title);
+
                     // Make sure the Switch widget is synchronized with the preference
                     final Switch bridgesEnabledSwitch =
                         (Switch) parent.findViewById(android.R.id.switch_widget);
@@ -541,6 +560,11 @@ public class TorPreferences extends AppCompatPreferenceActivity {
         //   If PREFS_BRIDGES_PROVIDE is not null, then true
         //   Else false
         private boolean isBridgeProvided(SwitchPreference bridgesEnabled) {
+            if (bridgesEnabled == null) {
+                Log.i(LOGTAG, "isBridgeProvided: bridgesEnabled is null");
+                return false;
+            }
+
             if (!bridgesEnabled.isChecked()) {
                 Log.i(LOGTAG, "isBridgeProvided: bridgesEnabled is not checked");
                 return false;
@@ -572,7 +596,6 @@ public class TorPreferences extends AppCompatPreferenceActivity {
         @Override
         public void onViewCreated(View view, Bundle savedInstanceState) {
             super.onViewCreated(view, savedInstanceState);
-            setTitle(R.string.pref_tor_select_a_bridge_title);
 
             ListView lv = getListView(view);
             if (lv == null) {
@@ -585,6 +608,8 @@ public class TorPreferences extends AppCompatPreferenceActivity {
 
                 @Override
                 public void onChildViewAdded(View parent, View child) {
+                    setTitle(R.string.pref_tor_select_a_bridge_title);
+
                     // Set the previously chosen RadioButton as checked
                     final RadioGroup group = getBridgeTypeRadioGroup();
                     if (group == null) {
@@ -828,7 +853,6 @@ public class TorPreferences extends AppCompatPreferenceActivity {
         @Override
         public void onViewCreated(View view, Bundle savedInstanceState) {
             super.onViewCreated(view, savedInstanceState);
-            setTitle(R.string.pref_tor_provide_a_bridge_title);
             ListView lv = getListView(view);
             if (lv == null) {
                 Log.i(LOGTAG, "onViewCreated: ListView not found");
@@ -847,6 +871,8 @@ public class TorPreferences extends AppCompatPreferenceActivity {
             lv.setOnHierarchyChangeListener(new ViewGroup.OnHierarchyChangeListener() {
                 @Override
                 public void onChildViewAdded(View parent, View child) {
+                    setTitle(R.string.pref_tor_provide_a_bridge_title);
+
                     // If we have a bridge line saved for this pref,
                     // then show the user
                     setBridgeProvideText(parent);
