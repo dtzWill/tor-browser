@@ -51,6 +51,17 @@ function createOnboardingTourDescription(div, title, description) {
 }
 
 /**
+ * Helper function to insert a prefix above the tour description.
+ */
+function addOnboardingTourPrefix(section, l10nId) {
+  let doc = section.ownerDocument;
+  let div = doc.createElement("div");
+  div.className = "onboarding-tour-description-prefix";
+  div.setAttribute("data-l10n-id", l10nId);
+  section.insertBefore(div, section.firstChild); // Insert as first child.
+}
+
+/**
  * Helper function to create the tour content UI element.
  */
 function createOnboardingTourContent(div, imageSrc) {
@@ -108,6 +119,7 @@ function createOnboardingTourButton(div, buttonId, l10nId, buttonElementTagName 
  **/
 // Tor Browser tours:
 var onboardingTourset = {
+  // Tour items for new users:
   "welcome": {
     id: "onboarding-tour-tor-welcome",
     tourNameId: TORBROWSER_WELCOME_TOUR_NAME_KEY,
@@ -222,6 +234,47 @@ var onboardingTourset = {
       let btnContainer = createOnboardingTourButton(div,
         "onboarding-tour-tor-onion-services-button", "onboarding.tour-tor-onion-services.button");
       btnContainer.className = "onboarding-tour-tor-action-button-container";
+      createOnboardingTourButton(div,
+        "onboarding-tour-tor-onion-services-next-button", "onboarding.tour-tor-onion-services.next-button");
+
+      return div;
+    },
+  },
+  // Tour items for users who have updated their Tor Browser:
+  "toolbar-update-8.5": {
+    id: "onboarding-tour-tor-toolbar-update-8-5",
+    tourNameId: "onboarding.tour-tor-toolbar",
+    instantComplete: true,
+    getPage(win) {
+      let div = win.document.createElement("div");
+
+      let desc = createOnboardingTourDescription(div,
+        "onboarding.tour-tor-toolbar-update-8.5.title", "onboarding.tour-tor-toolbar-update-8.5.description");
+      addOnboardingTourPrefix(desc, "onboarding.tour-tor-update.prefix-updated");
+
+      createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-toolbar-layout.png");
+      createOnboardingTourButton(div,
+        "onboarding-tour-tor-toolbar-next-button", "onboarding.tour-tor-toolbar-update-8.5.next-button");
+
+      return div;
+    },
+  },
+  "security-update-8.5": {
+    id: "onboarding-tour-tor-security-update-8-5",
+    tourNameId: "onboarding.tour-tor-security",
+    getPage(win) {
+      let div = win.document.createElement("div");
+
+      let desc = createOnboardingTourDescription(div,
+        "onboarding.tour-tor-security-update-8.5.title", "onboarding.tour-tor-security-update-8.5.description");
+      addOnboardingTourPrefix(desc, "onboarding.tour-tor-update.prefix-new");
+
+      createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-security-level.png");
+      let btnContainer = createOnboardingTourButton(div,
+        "onboarding-tour-tor-security-button", "onboarding.tour-tor-security-level.button");
+      btnContainer.className = "onboarding-tour-tor-action-button-container";
+      // It is confusing to use the two onion-services IDs below, but they
+      // provide the functionality and translated string ("Done") that we need.
       createOnboardingTourButton(div,
         "onboarding-tour-tor-onion-services-next-button", "onboarding.tour-tor-onion-services.next-button");
 
@@ -669,6 +722,7 @@ class Onboarding {
     } else {
       this._overlayIcon.classList.remove("onboarding-speech-bubble");
     }
+    this.updateAttentionDot();
   }
 
   _initUI() {
@@ -683,7 +737,10 @@ class Onboarding {
     this._overlayIcon = this._renderOverlayButton();
     this._overlayIcon.addEventListener("click", this);
     this._overlayIcon.addEventListener("keypress", this);
-    body.insertBefore(this._overlayIcon, body.firstChild);
+    let buttonContainer = this._window.document.createElement("div");
+    buttonContainer.id = "onboarding-overlay-button-container";
+    buttonContainer.appendChild(this._overlayIcon);
+    body.insertBefore(buttonContainer, body.firstChild);
 
     this._overlay = this._renderOverlay();
     this._overlay.addEventListener("click", this);
@@ -917,6 +974,7 @@ class Onboarding {
       case "onboarding-tour-tor-security-next-button":
       case "onboarding-tour-tor-expect-differences-next-button":
       case "onboarding-tour-tor-onion-services-next-button":
+      case "onboarding-tour-tor-toolbar-next-button":
         this.gotoNextTourItem();
         handledTourActionClick = true;
         break;
@@ -1131,7 +1189,9 @@ class Onboarding {
     this._overlayIcon.dispatchEvent(new this._window.CustomEvent("Agent:Destroy"));
 
     this._clearPrefObserver();
+    let buttonContainer = this._overlayIcon.parentElement;
     this._overlayIcon.remove();
+    buttonContainer.remove();
     if (this._overlay) {
       // send overlay-session telemetry
       this.hideOverlay();
@@ -1155,7 +1215,19 @@ class Onboarding {
         this._overlayIcon.classList.add("onboarding-watermark");
         break;
     }
+    this.updateAttentionDot();
     return true;
+  }
+
+  // Display an attention-grabbing dot on the speech bubble if the
+  // bubble is visible and we are showing the "update" tour.
+  updateAttentionDot() {
+    let buttonContainer = this._overlayIcon.parentElement;
+    if ((this._bubbleState === "bubble") && (this._tourType === "update")) {
+      buttonContainer.classList.add("onboarding-overlay-attention-dot");
+    } else {
+      buttonContainer.classList.remove("onboarding-overlay-attention-dot");
+    }
   }
 
   showOverlay() {
@@ -1418,6 +1490,7 @@ class Onboarding {
     // After the notification mute on the 1st session,
     // we don't want to show the speech bubble by default
     this._overlayIcon.classList.remove("onboarding-speech-bubble");
+    this.updateAttentionDot();
 
     let queue = this._getNotificationQueue();
     let totalMaxTime = Services.prefs.getIntPref("browser.onboarding.notification.max-life-time-all-tours-ms");

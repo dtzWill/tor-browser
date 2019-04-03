@@ -23,11 +23,44 @@
   display: block;
 }
 
-#onboarding-overlay-button {
-  padding: 10px 0 0 0;
+#onboarding-overlay-button-container {
+  padding: 16px 0 0 0;
   position: fixed;
-  cursor: pointer;
   top: 4px;
+}
+
+/*
+ * Define an animated attention-grabbing dot which is shown on the
+ * speech bubble when we are displaying the "updated" tour.
+*/
+#onboarding-overlay-button-container.onboarding-overlay-attention-dot::after {
+  display: inline-block;
+  position: relative;
+  content: " ";
+  width: 20px;
+  height: 20px;
+  top: -8px;
+  offset-inline-start: -16px;
+  background-color: #00E2B1;
+  border-radius: 50%;
+  animation: pulsate 2.0s ease-out;
+  animation-iteration-count: 7;
+}
+
+@keyframes pulsate {
+  0% {
+    opacity: 1.0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1.0;
+  }
+}
+
+#onboarding-overlay-button {
+  cursor: pointer;
   offset-inline-start: 12px;
   border: none;
   /* Set to none so no grey contrast background in the high-contrast mode */
@@ -78,7 +111,7 @@
   font-weight: 400;
   content: attr(aria-label);
   border: 1px solid transparent;
-  border-radius: 58px;
+  border-radius: 12px;
   padding: 10px 16px;
   width: auto;
   height: auto;
@@ -306,6 +339,19 @@
   display: grid;
   grid-template-rows: [tour-page-start] 393px [tour-button-start] 1fr [tour-page-end];
   grid-template-columns: [tour-page-start] 368px [tour-content-start] 1fr [tour-page-end];
+}
+
+.onboarding-tour-description-prefix {
+  display: inline-block;
+  margin-bottom: -8px; /* reduce vertical space below */
+  padding: 2px 10px;
+  vertical-align: center;
+  background-color: #F1F1F3;
+  border-radius: 4px;
+  min-height: 25px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .onboarding-tour-description {
