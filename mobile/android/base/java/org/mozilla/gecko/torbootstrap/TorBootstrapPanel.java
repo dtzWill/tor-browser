@@ -7,7 +7,6 @@ package org.mozilla.gecko.torbootstrap;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.drawable.Animatable2;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,6 +15,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -43,6 +43,8 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
     protected ViewGroup mRoot;
     protected Activity mActContext;
     protected TorBootstrapPager.TorBootstrapController mBootstrapController;
+
+    private ViewTreeLayoutListener mViewTreeLayoutListener;
 
     // These are used by the background AlphaChanging thread for dynamically changing
     // the alpha value of the Onion during bootstrap.
@@ -85,6 +87,155 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
         }
     }
 
+    // Android tries scaling the image as a square. Create a modified ViewPort via padding
+    // top, left, right, and bottom such that the image aspect ratio is correct.
+    private void setOnionImgLayout() {
+        if (mRoot == null) {
+            Log.i(LOGTAG, "setOnionImgLayout: mRoot is null");
+            return;
+        }
+
+        ImageView onionImg = (ImageView) mRoot.findViewById(R.id.tor_bootstrap_onion);
+        if (onionImg == null) {
+            Log.i(LOGTAG, "setOnionImgLayout: onionImg is null");
+            return;
+        }
+
+        // Dimensions of the SVG. If the image is ever changed, update these values. The
+        // SVG viewport is 2dp wider due to clipping.
+        final double imgHeight = 289.;
+        final double imgWidth = 247.;
+
+        // Dimensions of the current ImageView
+        final int currentHeight = onionImg.getHeight();
+        final int currentWidth = onionImg.getWidth();
+
+        // If we only consider one dimension of the image, calculate the expected value
+        // of the other dimension (width vs. height).
+        final int expectedHeight = (int) (currentWidth*imgHeight/imgWidth);
+        final int expectedWidth = (int) (currentHeight*imgWidth/imgHeight);
+
+        // Set current values as default.
+        int newWidth = currentWidth;
+        int newHeight = currentHeight;
+
+        Log.d(LOGTAG, "Current Top=" + onionImg.getTop());
+        Log.d(LOGTAG, "Current Height=" + currentHeight);
+        Log.d(LOGTAG, "Current Width=" + currentWidth);
+        Log.d(LOGTAG, "Expected height=" + expectedHeight);
+        Log.d(LOGTAG, "Expected width=" + expectedWidth);
+
+        // Configure the width or height based on its expected value. This is based on
+        // the intuition that:
+        //   - If the device is in portrait mode, then the device's height is (likely)
+        //     greater than its width. When this is the case, then:
+        //         - The image's View object is likely using all available vertical area
+        //             (but the image is bounded by the width of the device due to
+        //             maintaining the scaling factor).
+        //         - However, the height and width of the graphic are equal (because
+        //             Android enforces this).
+        //         - The width should be less than the height (this is a property of
+        //             the image itself).
+        //         - The width should be proportional to the imgHeight and imgWidth
+        //             defined above.
+        //     Adjust the height when the current width is less than the expected width.
+        //     The width is the limiting-factor, therefore choose the height proportional
+        //     to the current width.
+        //
+        //   - The opposite is likely true when the device is in landscape mode with
+        //     respect to the height and width. Adjust the width when the height is less
+        //     than the expected height. The height is the limiting-factor, therefore
+        //     choose the width proportional to the current height.
+        //
+        // Subtract 1 from the expected value as a way of accounting for rounding
+        // error.
+        if (currentWidth < (expectedWidth - 1)) {
+            newHeight = expectedHeight;
+        } else if (currentHeight < (expectedHeight - 1)) {
+            newWidth = expectedWidth;
+        }
+
+        Log.d(LOGTAG, "New height=" + newHeight);
+        Log.d(LOGTAG, "New width=" + newWidth);
+
+        // Define the padding as the available space between the current height (as it
+        // is displayed to the user) and the new height (as it was calculated above).
+        int verticalPadding = currentHeight - newHeight;
+        int sidePadding = currentWidth - newWidth;
+        int leftPadding = 0;
+        int topPadding = 0;
+        int bottomPadding = 0;
+        int rightPadding = 0;
+
+        // If the width of the image is greater than 600dp, then cap it at 702x600 (HxW).
+        // Furthermore, if the width is "near" 600dp (within 100dp), then decrease the
+        // dimensions to 468x400 dp. This should "look" better on lower-resolution
+        // devices.
+        final int MAXIMUM_WIDTH = 600;
+        final int distanceFromMaxWidth = newWidth - MAXIMUM_WIDTH;
+        final boolean isNearMaxWidth = Math.abs(distanceFromMaxWidth) < 100;
+        if ((newWidth > MAXIMUM_WIDTH) || isNearMaxWidth) {
+            if (isNearMaxWidth) {
+                // If newWidth is near MAX_WIDTH, then add additional padding (therefore
+                // decreasing the width by an additional 200dp).
+                sidePadding += 200;
+            }
+
+            final int paddingSpaceAvailable = (distanceFromMaxWidth > 0) ? distanceFromMaxWidth : 0;
+            sidePadding += paddingSpaceAvailable;
+
+            final int newWidthWithoutPadding = currentWidth - sidePadding;
+
+            final int newHeightWithoutPadding = (int) (newWidthWithoutPadding*imgHeight/imgWidth);
+
+            Log.d(LOGTAG, "New width without padding=" + newWidthWithoutPadding);
+            Log.d(LOGTAG, "New height without padding=" + newHeightWithoutPadding);
+
+            verticalPadding = currentHeight - newHeightWithoutPadding;
+        }
+
+        Log.d(LOGTAG, "New top padding=" + verticalPadding);
+        Log.d(LOGTAG, "New side padding=" + sidePadding);
+
+        if (verticalPadding < 0) {
+            Log.i(LOGTAG, "vertical padding is " + verticalPadding);
+            verticalPadding = 0;
+        } else {
+            // Place 4/5 of padding at top, and 1/5 of padding at bottom.
+            topPadding = (int) (verticalPadding*4)/5;
+            bottomPadding = (int) verticalPadding/5;
+        }
+
+        if (sidePadding < 0) {
+            Log.i(LOGTAG, "side padding is " + sidePadding);
+            leftPadding = 0;
+            rightPadding = 0;
+        } else {
+            // Divide the padding equally on the left and right side.
+            leftPadding = (int) sidePadding/2;
+            rightPadding = leftPadding;
+        }
+
+        // Create a padding-box around the image and let Android fill the box with
+        // the image. Android will scale the width and height independently, so the
+        // end result should be a correctly-sized graphic.
+        onionImg.setPadding(leftPadding, topPadding, rightPadding, bottomPadding);
+
+        // Separately scale x- and y-dimension.
+        onionImg.setScaleType(ImageView.ScaleType.FIT_XY);
+
+        // Invalidate the view because the image disappears (is not redrawn) sometimes when
+        // the screen is rotated.
+        onionImg.invalidate();
+    }
+
+    private class ViewTreeLayoutListener implements ViewTreeObserver.OnGlobalLayoutListener {
+        @Override
+        public void onGlobalLayout() {
+            TorBootstrapPanel.this.setOnionImgLayout();
+        }
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstance) {
         mRoot = (ViewGroup) inflater.inflate(R.layout.tor_bootstrap, container, false);
@@ -120,6 +271,12 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
         configureGearCogClickHandler();
 
         TorLogEventListener.addLogger(this);
+
+        // Add a callback for notification when the layout is complete and all components
+        // are measured. Waiting until the layout is complete is necessary before we correctly
+        // set the size of the onion. Cache the listener so we may remove it later.
+        mViewTreeLayoutListener = new ViewTreeLayoutListener();
+        mRoot.getViewTreeObserver().addOnGlobalLayoutListener(mViewTreeLayoutListener);
 
         return mRoot;
     }
@@ -193,6 +350,9 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
                 mOnionAlphaChangerRunning = false;
             }
             close();
+
+            // Remove the listener when we're done
+            mRoot.getViewTreeObserver().removeOnGlobalLayoutListener(mViewTreeLayoutListener);
         }
     }
 
@@ -281,9 +441,9 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
                 Log.i(LOGTAG, "mChangeOnionAlphaThread.getState(): is terminated");
                 mChangeOnionAlphaThread = null;
             } else {
-                // Don't null the reference in this case because then we'll start another
-                // background thread. We are currently in an unknown state, simply set
-                // the Running flag as false.
+                // The reference is not nulled in this case because another
+                // background thread would start otherwise. The thread is currently in
+                // an unknown state, simply set the Running flag as false.
                 Log.w(LOGTAG, "We're in an unexpected state. mChangeOnionAlphaThread.getState(): " + mChangeOnionAlphaThread.getState());
 
                 synchronized(mOnionAlphaChangerLock) {
@@ -302,7 +462,7 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
 
                 // Synchronization across threads should not be necessary because there
                 // shouldn't be any other threads relying on mOnionAlphaChangerRunning.
-                // We do this purely for safety.
+                // Do this purely for safety.
                 synchronized(mOnionAlphaChangerLock) {
                     mOnionAlphaChangerRunning = true;
                 }
@@ -317,7 +477,7 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
             Log.w(LOGTAG, "startBootstrapping: mRoot is null?");
             return;
         }
-        // We're starting bootstrap, transition into the bootstrapping-tor-panel
+        // Start bootstrap process and transition into the bootstrapping-tor-panel
         Button connectButton = mRoot.findViewById(R.id.tor_bootstrap_connect);
         if (connectButton == null) {
             Log.w(LOGTAG, "startBootstrapping: connectButton is null?");
@@ -326,17 +486,7 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
 
         ImageView onionImg = (ImageView) mRoot.findViewById(R.id.tor_bootstrap_onion);
 
-        // Replace the current non-animated image with the animation
-        onionImg.setImageResource(R.drawable.tor_spinning_onion);
-
         Drawable drawableOnion = onionImg.getDrawable();
-        if (Build.VERSION.SDK_INT >= 23 && drawableOnion instanceof Animatable2) {
-            Animatable2 spinningOnion = (Animatable2) drawableOnion;
-            // Begin spinning
-            spinningOnion.start();
-        } else {
-            Log.i(LOGTAG, "Animatable2 is not supported (or bad inheritance), version: " + Build.VERSION.SDK_INT);
-        }
 
         mOnionCurrentAlpha = 255;
         // The onion should have 100% alpha, begin decreasing it.
@@ -387,27 +537,6 @@ public class TorBootstrapPanel extends FirstrunPanel implements TorBootstrapLogg
         }
 
         Drawable drawableOnion = onionImg.getDrawable();
-
-        // If the connect button wasn't pressed previously, then this object is
-        // not an animation (it is most likely a BitmapDrawable). Only manipulate
-        // it when it is an Animatable2.
-        if (Build.VERSION.SDK_INT >= 23 && drawableOnion instanceof Animatable2) {
-            Animatable2 spinningOnion = (Animatable2) drawableOnion;
-            // spinningOnion is null if we didn't previously call startBootstrapping.
-            // If we reach here and spinningOnion is null, then there is likely a bug
-            // because stopBootstrapping() is called only when the user selects the
-            // gear button and we should only reach this block if the user pressed the
-            // connect button (thus creating and enabling the animation) and then
-            // pressing the gear button. Therefore, if the drawableOnion is an
-            // Animatable2, then spinningOnion should be non-null.
-            if (spinningOnion != null) {
-                spinningOnion.stop();
-
-                onionImg.setImageResource(R.drawable.tor_spinning_onion);
-            }
-        } else {
-            Log.i(LOGTAG, "Animatable2 is not supported (or bad inheritance), version: " + Build.VERSION.SDK_INT);
-        }
 
         // Reset the onion's alpha value.
         onionImg.setImageAlpha(255);

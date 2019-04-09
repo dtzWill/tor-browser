@@ -74,13 +74,10 @@
                    android:tint="#ffffffff"
                    android:layout_height="wrap_content"
                    android:layout_width="match_parent"
-                   android:layout_marginTop="130dp"
                    android:layout_marginBottom="37dp"
-                   android:layout_marginRight="95dp"
-                   android:layout_marginLeft="95dp"
+                   android:layout_marginRight="10dp"
+                   android:layout_marginLeft="10dp"
                    android:layout_centerHorizontal="true"
                    android:layout_below="@id/tor_bootstrap_settings_gear"
-                   android:layout_above="@id/tor_bootstrap_last_status_message"
-                   android:paddingLeft="20dp"
-                   android:paddingRight="20dp"/>
+                   android:layout_above="@id/tor_bootstrap_last_status_message" />
 </RelativeLayout>

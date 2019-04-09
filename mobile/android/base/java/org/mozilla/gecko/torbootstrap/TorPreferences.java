@@ -342,7 +342,7 @@ public class TorPreferences extends AppCompatPreferenceActivity {
                 Log.i(LOGTAG, "disableBridges: bridgesProvide is not null");
                 pref = bridgesProvide;
             } else {
-                Log.w(LOGTAG, "disableBridges: all the expected preferences are is null?");
+                Log.w(LOGTAG, "disableBridges: all of the expected preferences are null?");
                 return;
             }
 
@@ -396,7 +396,7 @@ public class TorPreferences extends AppCompatPreferenceActivity {
                     // such that it is synchronized with the widget.
                     final SwitchPreference bridgesEnabled = (SwitchPreference) TorNetworkBridgesEnabledPreference.this.findPreference(PREFS_BRIDGES_ENABLED);
                     if (bridgesEnabled == null) {
-                        Log.w(LOGTAG, "onCreate: bridgesEnabled is null?");
+                        Log.w(LOGTAG, "onClick: bridgesEnabled is null?");
                         return;
                     }
 
@@ -422,11 +422,10 @@ public class TorPreferences extends AppCompatPreferenceActivity {
         @Override
         public void onViewCreated(View view, Bundle savedInstanceState) {
             super.onViewCreated(view, savedInstanceState);
-            setTitle(R.string.pref_tor_network_title);
 
             final SwitchPreference bridgesEnabled = (SwitchPreference) findPreference(PREFS_BRIDGES_ENABLED);
             if (bridgesEnabled == null) {
-                Log.w(LOGTAG, "onCreate: bridgesEnabled is null?");
+                Log.w(LOGTAG, "onViewCreated: bridgesEnabled is null?");
                 return;
             }
 
@@ -927,9 +926,9 @@ public class TorPreferences extends AppCompatPreferenceActivity {
             }
 
             if (bridgesLine2 != null) {
-                // If bridgesLine1 was not null, then append a newline.
                 Log.i(LOGTAG, "bridgesLine2 is not null.");
                 if (bridgesLines != null) {
+                    // If bridgesLine1 was not null, then append a newline.
                     bridgesLines += "\n" + bridgesLine2;
                 } else {
                     bridgesLines = bridgesLine2;
@@ -937,9 +936,9 @@ public class TorPreferences extends AppCompatPreferenceActivity {
             }
 
             if (bridgesLine3 != null) {
-                // If bridgesLine1 was not null, then append a newline.
                 Log.i(LOGTAG, "bridgesLine3 is not null.");
                 if (bridgesLines != null) {
+                    // If bridgesLine1 or bridgesLine2 were not null, then append a newline.
                     bridgesLines += "\n" + bridgesLine3;
                 } else {
                     bridgesLines = bridgesLine3;
@@ -954,11 +953,11 @@ public class TorPreferences extends AppCompatPreferenceActivity {
             }
 
             if (bridgesLines == null) {
-                Log.i(LOGTAG, "provideBridge is empty. Disabling.");
                 // If provided bridges are null/empty, then only disable all bridges if
                 // the user did not select a built-in bridge
                 String configuredBuiltinBridges = getBridges(bridgesProvide.getSharedPreferences(), PREFS_BRIDGES_TYPE);
                 if (configuredBuiltinBridges == null) {
+                    Log.i(LOGTAG, "Custom bridges are empty. Disabling.");
                     disableBridges(this);
                 }
                 return;
