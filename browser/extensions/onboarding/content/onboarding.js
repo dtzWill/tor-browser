@@ -51,17 +51,6 @@ function createOnboardingTourDescription(div, title, description) {
 }
 
 /**
- * Helper function to insert a prefix above the tour description.
- */
-function addOnboardingTourPrefix(section, l10nId) {
-  let doc = section.ownerDocument;
-  let div = doc.createElement("div");
-  div.className = "onboarding-tour-description-prefix";
-  div.setAttribute("data-l10n-id", l10nId);
-  section.insertBefore(div, section.firstChild); // Insert as first child.
-}
-
-/**
  * Helper function to create the tour content UI element.
  */
 function createOnboardingTourContent(div, imageSrc) {
@@ -189,11 +178,18 @@ var onboardingTourset = {
   "security": {
     id: "onboarding-tour-tor-security",
     tourNameId: "onboarding.tour-tor-security",
+    highlightId: "onboarding.tour-tor-update.prefix-new",
     getPage(win) {
       let div = win.document.createElement("div");
 
-      createOnboardingTourDescription(div,
+      let desc = createOnboardingTourDescription(div,
         "onboarding.tour-tor-security.title", "onboarding.tour-tor-security.description");
+      let additionalDesc = win.document.createElement("p");
+      additionalDesc.className = "onboarding-tour-description-suffix";
+      additionalDesc.setAttribute("data-l10n-id",
+        "onboarding.tour-tor-security.description-suffix");
+      desc.appendChild(additionalDesc);
+
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-security.png");
       let btnContainer = createOnboardingTourButton(div,
         "onboarding-tour-tor-security-button", "onboarding.tour-tor-security-level.button");
@@ -244,13 +240,13 @@ var onboardingTourset = {
   "toolbar-update-8.5": {
     id: "onboarding-tour-tor-toolbar-update-8-5",
     tourNameId: "onboarding.tour-tor-toolbar",
+    highlightId: "onboarding.tour-tor-update.prefix-updated",
     instantComplete: true,
     getPage(win) {
       let div = win.document.createElement("div");
 
       let desc = createOnboardingTourDescription(div,
         "onboarding.tour-tor-toolbar-update-8.5.title", "onboarding.tour-tor-toolbar-update-8.5.description");
-      addOnboardingTourPrefix(desc, "onboarding.tour-tor-update.prefix-updated");
 
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-toolbar-layout.png");
       createOnboardingTourButton(div,
@@ -262,12 +258,12 @@ var onboardingTourset = {
   "security-update-8.5": {
     id: "onboarding-tour-tor-security-update-8-5",
     tourNameId: "onboarding.tour-tor-security",
+    highlightId: "onboarding.tour-tor-update.prefix-new",
     getPage(win) {
       let div = win.document.createElement("div");
 
       let desc = createOnboardingTourDescription(div,
         "onboarding.tour-tor-security-update-8.5.title", "onboarding.tour-tor-security-update-8.5.description");
-      addOnboardingTourPrefix(desc, "onboarding.tour-tor-update.prefix-new");
 
       createOnboardingTourContent(div, "resource://onboarding/img/figure_tor-security-level.png");
       let btnContainer = createOnboardingTourButton(div,
@@ -1777,7 +1773,17 @@ class Onboarding {
       let tourPanelId = `${tour.id}-page`;
       tab.setAttribute("aria-controls", tourPanelId);
 
+      if (tour.highlightId) {
+        // Add [New] or [Updated] text after this navigation item to draw
+        // attention to it.
+        let highlight = this._window.document.createElement("span");
+        highlight.className = "onboarding-tour-description-highlight";
+        highlight.textContent = this._bundle.GetStringFromName(tour.highlightId);
+        tab.appendChild(highlight);
+      }
+
       li.appendChild(tab);
+
       itemsFrag.appendChild(li);
       // Dynamically create tour pages
       let div = tour.getPage(this._window, this._bundle);

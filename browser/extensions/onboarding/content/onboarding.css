@@ -341,14 +341,13 @@
   grid-template-columns: [tour-page-start] 368px [tour-content-start] 1fr [tour-page-end];
 }
 
-.onboarding-tour-description-prefix {
+.onboarding-tour-description-highlight {
   display: inline-block;
-  margin-bottom: -8px; /* reduce vertical space below */
-  padding: 2px 10px;
-  vertical-align: center;
+  margin-inline-start: 8px;
+  padding: 6px 8px;
+  vertical-align: middle;
   background-color: #F1F1F3;
   border-radius: 4px;
-  min-height: 25px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -373,6 +372,12 @@
   color: #420c5d;
 }
 
+.onboarding-tour-description-suffix {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 16px;
+}
+
 .onboarding-tour-content {
   grid-row: tour-page-start / tour-button-start;
   grid-column: tour-content-start / tour-page-end;
@@ -389,6 +394,12 @@
    need to flip them horizontally on RTL . */
 .onboarding-tour-content > img:dir(rtl) {
   transform: scaleX(-1);
+}
+
+/* The image contained in figure_tor-security-level.png contains English text;
+ * therefore it should not be flipped when the document direction is RTL. */
+#onboarding-tour-tor-security-update-8-5-page > .onboarding-tour-content > img:dir(rtl) {
+  transform: scaleX(1);
 }
 
 .onboarding-tour-content > iframe {
