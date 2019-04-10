@@ -396,12 +396,6 @@
   transform: scaleX(-1);
 }
 
-/* The image contained in figure_tor-security-level.png contains English text;
- * therefore it should not be flipped when the document direction is RTL. */
-#onboarding-tour-tor-security-update-8-5-page > .onboarding-tour-content > img:dir(rtl) {
-  transform: scaleX(1);
-}
-
 .onboarding-tour-content > iframe {
   width: 100%;
   height: 100%;
